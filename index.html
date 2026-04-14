@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecurePass UI v5</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/feather-icons"></script>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --bg-dark: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --success: #10b981;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-dark);
+            background-image: radial-gradient(circle at top right, #1e1b4b, var(--bg-dark));
+            color: var(--text-main);
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; margin: 0; padding: 20px;
+        }
+
+        .container {
+            width: 100%; max-width: 450px; padding: 2.5rem;
+            background: var(--card-bg); backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 28px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .header { text-align: center; margin-bottom: 2rem; }
+        .header h2 { margin: 0; font-weight: 600; }
+        .header p { color: var(--text-dim); font-size: 0.85rem; margin-top: 8px; }
+
+        .section { margin-bottom: 1.5rem; }
+
+        .label-group {
+            display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+            color: var(--text-dim); font-size: 0.75rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.05em;
+        }
+
+        .input-wrapper { position: relative; display: flex; align-items: center; }
+
+        input {
+            width: 100%; background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px;
+            padding: 12px 16px; color: white; font-size: 0.95rem;
+            transition: all 0.2s ease; box-sizing: border-box;
+        }
+
+        input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15); }
+
+        .toggle-btn {
+            position: absolute; right: 8px; background: none; border: none;
+            color: var(--text-dim); cursor: pointer; padding: 8px; display: flex;
+        }
+
+        /* Strength Meter */
+        .strength-container { margin-top: 10px; height: 6px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden; }
+        .strength-bar { height: 100%; width: 0%; transition: all 0.4s ease; }
+        .strength-text { font-size: 11px; margin-top: 6px; font-weight: 600; display: block; text-align: right; }
+
+        /* Output Badges */
+        .output-badge {
+            margin-top: 10px; background: rgba(99, 102, 241, 0.1); border-left: 3px solid var(--primary);
+            padding: 10px 14px; border-radius: 8px; font-family: monospace; font-size: 0.85rem;
+            color: #818cf8; word-break: break-all; min-height: 1.2rem;
+            display: flex; justify-content: space-between; align-items: center; gap: 10px;
+        }
+
+        .copy-btn {
+            background: rgba(255,255,255,0.05); border: none; color: var(--text-dim);
+            padding: 4px; border-radius: 4px; cursor: pointer; transition: all 0.2s;
+            display: flex; align-items: center;
+        }
+
+        .copy-btn:hover { background: rgba(255,255,255,0.1); color: var(--text-main); }
+
+        .feather { width: 16px; height: 16px; }
+        .feather-large { width: 18px; height: 18px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h2>Mataverde Security</h2>
+        <p>Complete Security Interface</p>
+    </div>
+
+    <div class="section">
+        <div class="label-group"><i class="feather-large" data-feather="lock"></i> Password Strength</div>
+        <div class="input-wrapper">
+            <input type="password" id="mainPass" oninput="checkStrength()" placeholder="Check security level...">
+            <button type="button" class="toggle-btn" onclick="toggleVisibility()">
+                <i id="eyeIcon" class="feather-large" data-feather="eye"></i>
+            </button>
+        </div>
+        <div class="strength-container"><div id="strengthBar" class="strength-bar"></div></div>
+        <span id="strengthLabel" class="strength-text" style="color: var(--danger);">Empty</span>
+    </div>
+
+    <div class="section">
+        <div class="label-group"><i class="feather-large" data-feather="eye-off"></i> Visual Masking</div>
+        <input type="text" id="maskInput" oninput="runTools()" placeholder="Real-time * masking...">
+        <div class="output-badge"><span id="maskOutput">Waiting...</span></div>
+    </div>
+
+    <div class="section" style="margin-bottom: 0;">
+        <div class="label-group"><i class="feather-large" data-feather="shield"></i> Base64 Encryption</div>
+        <input type="text" id="hashInput" oninput="runTools()" placeholder="Enter message to encrypt...">
+        <div class="output-badge">
+            <span id="hashOutput">Result...</span>
+            <button class="copy-btn" id="copyBtn" onclick="copyToClipboard()" title="Copy to clipboard">
+                <i data-feather="copy"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    feather.replace();
+
+    function checkStrength() {
+        const val = document.getElementById('mainPass').value;
+        const bar = document.getElementById('strengthBar');
+        const label = document.getElementById('strengthLabel');
+        let score = 0;
+        if (!val) { bar.style.width = "0%"; label.innerText = "Empty"; label.style.color = "var(--text-dim)"; return; }
+        if (val.length > 7) score++;
+        if (/[A-Z]/.test(val)) score++;
+        if (/[0-9]/.test(val)) score++;
+        if (/[^A-Za-z0-9]/.test(val)) score++;
+        const widths = ["25%", "50%", "75%", "100%"];
+        const colors = ["var(--danger)", "var(--warning)", "#818cf8", "var(--success)"];
+        const texts = ["Weak", "Fair", "Good", "Strong"];
+        bar.style.width = widths[score - 1] || "10%";
+        bar.style.background = colors[score - 1] || "var(--danger)";
+        label.innerText = texts[score - 1] || "Weak";
+        label.style.color = colors[score - 1] || "var(--danger)";
+    }
+
+    function toggleVisibility() {
+        const passField = document.getElementById('mainPass');
+        const icon = document.getElementById('eyeIcon');
+        passField.type = passField.type === 'password' ? 'text' : 'password';
+        icon.setAttribute('data-feather', passField.type === 'password' ? 'eye' : 'eye-off');
+        feather.replace();
+    }
+
+    function runTools() {
+        const m = document.getElementById('maskInput').value;
+        document.getElementById('maskOutput').innerText = m ? "*".repeat(m.length) : "Waiting...";
+        const h = document.getElementById('hashInput').value;
+        try { document.getElementById('hashOutput').innerText = h ? btoa(h) : "Result..."; }
+        catch(e) { document.getElementById('hashOutput').innerText = "Invalid input"; }
+    }
+
+    function copyToClipboard() {
+        const text = document.getElementById('hashOutput').innerText;
+        if (text === "Result..." || text === "Invalid input") return;
+
+        navigator.clipboard.writeText(text).then(() => {
+            const btn = document.getElementById('copyBtn');
+            btn.innerHTML = '<i data-feather="check" style="color: var(--success)"></i>';
+            feather.replace();
+            
+            setTimeout(() => {
+                btn.innerHTML = '<i data-feather="copy"></i>';
+                feather.replace();
+            }, 2000);
+        });
+    }
+</script>
+
+</body>
+</html>
